@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Uhr v1.3.1</title>
+    <link id="manifest-link" rel="manifest" href="">
+    <style>
+        /* CSS-Reset und Basis-Styling */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            background-color: #050505;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden; 
+            transition: color 0.3s ease;
+        }
+
+        #clock {
+            font-size: 15vw; 
+            font-weight: bold;
+            font-variant-numeric: tabular-nums; 
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            user-select: none; 
+            text-align: center;
+            will-change: transform, filter; 
+        }
+
+        /* --- UI für Einstellungen --- */
+        #settings-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #ffffff;
+            opacity: 0.3;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+
+        #settings-btn:hover {
+            opacity: 1;
+        }
+
+        #settings-modal {
+            display: none; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: 20;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .settings-content {
+            background-color: #1a1a1a;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #333;
+            width: 90%;
+            max-width: 350px;
+            max-height: 90vh;
+            overflow-y: auto; 
+        }
+
+        .settings-content h2 {
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .setting-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .setting-group label {
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .setting-group input, .setting-group select {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background-color: #050505;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .setting-group input[type="color"] {
+            height: 40px;
+            padding: 2px;
+            cursor: pointer;
+        }
+
+        #close-settings {
+            margin-top: 20px;
+            padding: 10px;
+            width: 100%;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        #close-settings:hover {
+            background-color: #555;
+        }
+
+        /* --- Animationen für den Zeitgeber --- */
+        @keyframes effectPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes effectShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-15px); }
+            40%, 80% { transform: translateX(15px); }
+        }
+
+        @keyframes effectFlash {
+            0%, 100% { filter: hue-rotate(0deg) brightness(1); }
+            50% { filter: hue-rotate(180deg) brightness(2); }
+        }
+
+        .effect-pulse { animation: effectPulse 0.8s ease-in-out; }
+        .effect-shake { animation: effectShake 0.6s ease-in-out; }
+        .effect-flash { animation: effectFlash 0.8s ease-in-out; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Settings Button -->
+    <button id="settings-btn" aria-label="Einstellungen öffnen">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+    </button>
+
+    <!-- Einstellungen Modal -->
+    <div id="settings-modal">
+        <div class="settings-content">
+            <h2>Einstellungen</h2>
+            
+            <div class="setting-group">
+                <label for="color-picker">Schriftfarbe</label>
+                <input type="color" id="color-picker" value="#ffffff">
+            </div>
+
+            <div class="setting-group">
+                <label for="font-picker">Schriftart</label>
+                <select id="font-picker">
+                    <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">System Standard (Serifenlos)</option>
+                    <option value="'Courier New', Courier, monospace">Monospace (Schreibmaschine)</option>
+                    <option value="Georgia, serif">Serif (Klassisch)</option>
+                    <option value="'Comic Sans MS', cursive, sans-serif">Cursive (Verspielt)</option>
+                    <option value="Impact, fantasy">Impact (Fett & Auffällig)</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <label for="format-picker">Zeitformat</label>
+                <select id="format-picker">
+                    <option value="HH:MM:SS">HH:MM:SS (24h)</option>
+                    <option value="HH:MM">HH:MM (24h Kurz)</option>
+                    <option value="hh:mm:ss A">hh:mm:ss AM/PM (12h)</option>
+                    <option value="DD.MM.YYYY HH:MM:SS">DD.MM.YYYY HH:MM:SS (Mit Datum)</option>
+                    <option value="YYYY-MM-DD HH:MM:SS">YYYY-MM-DD HH:MM:SS (ISO-artig)</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <label for="ticker-interval">Erinnerung alle X Min. (0 = Aus)</label>
+                <input type="number" id="ticker-interval" value="0" min="0" max="60">
+            </div>
+
+            <div class="setting-group">
+                <label for="ticker-effect">Erinnerungs-Effekt</label>
+                <select id="ticker-effect">
+                    <option value="pulse">Pulsieren (Größer werden)</option>
+                    <option value="shake">Wackeln</option>
+                    <option value="flash">Farbwechsel (Aufleuchten)</option>
+                </select>
+            </div>
+
+            <button id="close-settings">Schließen</button>
+        </div>
+    </div>
+
+    <!-- Anzeige der aktuellen Uhrzeit -->
+    <div id="clock">00:00:00</div>
+
+    <script>
+        // --- 1. UHR & EINSTELLUNGS LOGIK ---
+        
+        // Standardwerte
+        const defaultState = {
+            color: '#ffffff',
+            font: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            format: 'HH:MM:SS',
+            tickerInterval: 0,       
+            tickerEffect: 'pulse'
+        };
+
+        // Lade Einstellungen aus LocalStorage, falls vorhanden
+        let appState = { ...defaultState };
+        try {
+            const savedState = localStorage.getItem('miniUhrSettings');
+            if (savedState) {
+                appState = { ...appState, ...JSON.parse(savedState) };
+            }
+        } catch (e) {
+            console.warn("Einstellungen konnten nicht geladen werden.", e);
+        }
+
+        // Hilfsfunktion zum Speichern in LocalStorage
+        function saveState() {
+            try {
+                localStorage.setItem('miniUhrSettings', JSON.stringify(appState));
+            } catch (e) {
+                console.warn("Einstellungen konnten nicht gespeichert werden.", e);
+            }
+        }
+
+        const clockEl = document.getElementById('clock');
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettingsBtn = document.getElementById('close-settings');
+        const colorPicker = document.getElementById('color-picker');
+        const fontPicker = document.getElementById('font-picker');
+        const formatPicker = document.getElementById('format-picker');
+        const tickerIntervalInput = document.getElementById('ticker-interval');
+        const tickerEffectInput = document.getElementById('ticker-effect');
+
+        // UI-Elemente beim Start mit gespeicherten Werten befüllen
+        colorPicker.value = appState.color;
+        fontPicker.value = appState.font;
+        formatPicker.value = appState.format;
+        tickerIntervalInput.value = appState.tickerInterval;
+        tickerEffectInput.value = appState.tickerEffect;
+
+        // Initiale Schriftgröße prüfen
+        if(appState.format.includes('YYYY')) {
+            clockEl.style.fontSize = '10vw';
+        } else {
+            clockEl.style.fontSize = '15vw';
+        }
+
+        function formatTime(date, format) {
+            const pad = (n) => n.toString().padStart(2, '0');
+            const h24 = pad(date.getHours());
+            const h12 = pad(date.getHours() % 12 || 12);
+            const m = pad(date.getMinutes());
+            const s = pad(date.getSeconds());
+            const ampm = date.getHours() >= 12 ? 'PM' : 'AM';
+            const DD = pad(date.getDate());
+            const MM = pad(date.getMonth() + 1); 
+            const YYYY = date.getFullYear();
+
+            switch(format) {
+                case 'HH:MM': return `${h24}:${m}`;
+                case 'hh:mm:ss A': return `${h12}:${m}:${s} ${ampm}`;
+                case 'DD.MM.YYYY HH:MM:SS': return `${DD}.${MM}.${YYYY}\n${h24}:${m}:${s}`;
+                case 'YYYY-MM-DD HH:MM:SS': return `${YYYY}-${MM}-${DD}\n${h24}:${m}:${s}`;
+                case 'HH:MM:SS':
+                default:
+                    return `${h24}:${m}:${s}`;
+            }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            
+            // Text & Styles aktualisieren
+            clockEl.innerText = formatTime(now, appState.format);
+            clockEl.style.color = appState.color;
+            clockEl.style.textShadow = `0 0 20px ${appState.color}33`; 
+            document.body.style.fontFamily = appState.font;
+
+            // --- GEÄNDERT in v1.3.1: Absolute Zeitgeber Logik (zur runden Minute) ---
+            if (appState.tickerInterval > 0) {
+                
+                // Prüfen, ob wir genau am Anfang der Minute sind (Sekunde 0) 
+                // UND die aktuelle Minute ohne Rest durch das Intervall teilbar ist (z.B. Minute 15 % 5 = 0)
+                if (now.getSeconds() === 0 && now.getMinutes() % appState.tickerInterval === 0) {
+                    const effectClass = `effect-${appState.tickerEffect}`;
+                    
+                    if (!clockEl.classList.contains(effectClass)) {
+                        clockEl.classList.add(effectClass);
+                        setTimeout(() => clockEl.classList.remove(effectClass), 1000);
+                    }
+                }
+            }
+        }
+
+        // --- Event Listener ---
+        settingsBtn.addEventListener('click', () => settingsModal.style.display = 'flex');
+        closeSettingsBtn.addEventListener('click', () => settingsModal.style.display = 'none');
+
+        colorPicker.addEventListener('input', (e) => {
+            appState.color = e.target.value;
+            saveState();
+            updateClock();
+        });
+
+        fontPicker.addEventListener('change', (e) => {
+            appState.font = e.target.value;
+            saveState();
+            updateClock();
+        });
+
+        formatPicker.addEventListener('change', (e) => {
+            appState.format = e.target.value;
+            if(appState.format.includes('YYYY')) {
+                clockEl.style.fontSize = '10vw';
+            } else {
+                clockEl.style.fontSize = '15vw';
+            }
+            saveState();
+            updateClock();
+        });
+
+        tickerIntervalInput.addEventListener('input', (e) => {
+            appState.tickerInterval = parseInt(e.target.value, 10) || 0;
+            saveState();
+        });
+
+        tickerEffectInput.addEventListener('change', (e) => {
+            appState.tickerEffect = e.target.value;
+            saveState();
+        });
+
+        // Init
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // --- 2. PWA LOGIK ---
+        const iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192"><circle cx="96" cy="96" r="80" fill="#050505" stroke="#ffffff" stroke-width="8"/><path d="M96 35 V96 L140 140" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/></svg>';
+        const iconBase64 = 'data:image/svg+xml;base64,' + btoa(iconSvg);
+
+        const manifest = {
+            name: "Mini Uhr PWA",
+            short_name: "Uhr",
+            display: "standalone",
+            background_color: "#050505",
+            theme_color: "#050505",
+            start_url: location.href,
+            icons: [{ src: iconBase64, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" }]
+        };
+
+        const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+        document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
+
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                self.addEventListener('install', (e) => self.skipWaiting());
+                self.addEventListener('activate', (e) => self.clients.claim());
+                self.addEventListener('fetch', (e) => {
+                    e.respondWith(fetch(e.request).catch(() => new Response("Uhr Offline")));
+                });
+            `;
+            const swBlob = new Blob([swCode], {type: 'application/javascript'});
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob))
+                .catch(err => console.warn('Service Worker Registrierung fehlgeschlagen:', err));
+        }
+    </script>
+</body>
+</html>
+
+<!--
+=== CHANGE LOG ===
+v1.0.0 (Initial Release)
+- Basis HTML, CSS, Uhrzeit, PWA.
+
+v1.1.0 (Settings Update)
+- UI Modal, Farbe, Schriftart, Format.
+
+v1.2.0 (Time Ticker Update)
+- Zeitgeber mit Animationen (absolut nach runder Minute).
+
+v1.3.0 (Storage & Relative Ticker Update)
+- HINZUGEFÜGT: LocalStorage - Alle Einstellungen überleben nun einen Seiten-Neuladen.
+- GEÄNDERT: Timer auf relative Berechnung geändert.
+
+v1.3.1 (Absolute Ticker Fix)
+- GEÄNDERT: Logik des Timers wieder auf absolute Intervalle zur vollen Stunde umgestellt (z. B. 15:00, 15:05, 15:10), wie vom Nutzer explizit gewünscht.
+- ENTFERNT: `nextTickTime` Hilfsvariable wurde restlos aus State und Speicher entfernt.
+-->
