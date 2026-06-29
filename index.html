@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mini Uhr v1.3.1</title>
+    <title>Simple Clock</title>
     <link id="manifest-link" rel="manifest" href="">
     <style>
         /* CSS-Reset und Basis-Styling */
@@ -383,9 +383,12 @@ self.addEventListener('fetch', (e) => {
         const iconBase64 = 'data:image/svg+xml;base64,' + btoa(iconSvg);
 
         const manifest = {
-            name: "Mini Uhr PWA",
-            short_name: "Uhr",
+            name: "SimpleClock",
+            short_name: "Clock",
+            description: "A Clock",
+            start_url: "./index.html",
             display: "standalone",
+            display_override: ["window-controls-overlay"],
             background_color: "#050505",
             theme_color: "#050505",
             start_url: location.href,
