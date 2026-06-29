@@ -3,7 +3,8 @@
   "short_name": "Clock",
   "description": "A Clock",
   "start_url": "./index.html",
-  "display": "standalone",
+  "display": "standalone",  
+  "display_override": ["window-controls-overlay"],
   "background_color": "#0c0a09",
   "theme_color": "#1e3a8a",
   "icons": [
