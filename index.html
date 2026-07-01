@@ -19,6 +19,7 @@
             background-color: #050505;
             color: #ffffff;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -34,6 +35,8 @@
             user-select: none; 
             text-align: center;
             will-change: transform, filter; 
+            /* Margins entfernt, damit align-items funktioniert */
+            margin: 0;
         }
 
         /* --- UI für Einstellungen --- */
@@ -179,11 +182,20 @@
             <div class="setting-group">
                 <label for="font-picker">Schriftart</label>
                 <select id="font-picker">
-                    <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">System Standard (Serifenlos)</option>
-                    <option value="'Courier New', Courier, monospace">Monospace (Schreibmaschine)</option>
-                    <option value="Georgia, serif">Serif (Klassisch)</option>
-                    <option value="'Comic Sans MS', cursive, sans-serif">Cursive (Verspielt)</option>
-                    <option value="Impact, fantasy">Impact (Fett & Auffällig)</option>
+                    <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">System Standard</option>
+                    <option value="'Courier New', Courier, monospace">Monospace</option>
+                    <option value="Georgia, serif">Serif</option>
+                    <option value="'Comic Sans MS', cursive, sans-serif">Cursive</option>
+                    <option value="Impact, fantasy">Impact</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
+                <label for="position-picker">Position</label>
+                <select id="position-picker">
+                    <option value="center">Mittig</option>
+                    <option value="flex-start">Oben</option>
+                    <option value="flex-end">Unten</option>
                 </select>
             </div>
 
@@ -242,8 +254,9 @@ self.addEventListener('fetch', (e) => {
             color: '#ffffff',
             font: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
             format: 'HH:MM:SS',
-            tickerInterval: 0,       
-            tickerEffect: 'pulse'
+            tickerInterval: 0,        
+            tickerEffect: 'pulse',
+            position: 'center'
         };
 
         // Lade Einstellungen aus LocalStorage, falls vorhanden
@@ -257,37 +270,27 @@ self.addEventListener('fetch', (e) => {
             console.warn("Einstellungen konnten nicht geladen werden.", e);
         }
 
-        // Hilfsfunktion zum Speichern in LocalStorage
         function saveState() {
-            try {
-                localStorage.setItem('miniUhrSettings', JSON.stringify(appState));
-            } catch (e) {
-                console.warn("Einstellungen konnten nicht gespeichert werden.", e);
-            }
+            localStorage.setItem('miniUhrSettings', JSON.stringify(appState));
         }
 
         const clockEl = document.getElementById('clock');
-        const settingsBtn = document.getElementById('settings-btn');
-        const settingsModal = document.getElementById('settings-modal');
-        const closeSettingsBtn = document.getElementById('close-settings');
         const colorPicker = document.getElementById('color-picker');
         const fontPicker = document.getElementById('font-picker');
         const formatPicker = document.getElementById('format-picker');
+        const positionPicker = document.getElementById('position-picker');
         const tickerIntervalInput = document.getElementById('ticker-interval');
-        const tickerEffectInput = document.getElementById('ticker-effect');
 
-        // UI-Elemente beim Start mit gespeicherten Werten befüllen
         colorPicker.value = appState.color;
         fontPicker.value = appState.font;
         formatPicker.value = appState.format;
+        positionPicker.value = appState.position;
         tickerIntervalInput.value = appState.tickerInterval;
-        tickerEffectInput.value = appState.tickerEffect;
 
-        // Initiale Schriftgröße prüfen
-        if(appState.format.includes('YYYY')) {
-            clockEl.style.fontSize = '10vw';
-        } else {
-            clockEl.style.fontSize = '15vw';
+        function applyStyles() {
+            clockEl.style.color = appState.color;
+            document.body.style.fontFamily = appState.font;
+            document.body.style.justifyContent = appState.position;
         }
 
         function formatTime(date, format) {
@@ -305,10 +308,7 @@ self.addEventListener('fetch', (e) => {
                 case 'HH:MM': return `${h24}:${m}`;
                 case 'hh:mm:ss A': return `${h12}:${m}:${s} ${ampm}`;
                 case 'DD.MM.YYYY HH:MM:SS': return `${DD}.${MM}.${YYYY}\n${h24}:${m}:${s}`;
-                case 'YYYY-MM-DD HH:MM:SS': return `${YYYY}-${MM}-${DD}\n${h24}:${m}:${s}`;
-                case 'HH:MM:SS':
-                default:
-                    return `${h24}:${m}:${s}`;
+                default: return `${h24}:${m}:${s}`;
             }
         }
 
@@ -317,99 +317,33 @@ self.addEventListener('fetch', (e) => {
             
             // Text & Styles aktualisieren
             clockEl.innerText = formatTime(now, appState.format);
-            clockEl.style.color = appState.color;
-            clockEl.style.textShadow = `0 0 20px ${appState.color}33`; 
-            document.body.style.fontFamily = appState.font;
-
+            
             // --- GEÄNDERT in v1.3.1: Absolute Zeitgeber Logik (zur runden Minute) ---
+
             if (appState.tickerInterval > 0) {
-                
-                // Prüfen, ob wir genau am Anfang der Minute sind (Sekunde 0) 
-                // UND die aktuelle Minute ohne Rest durch das Intervall teilbar ist (z.B. Minute 15 % 5 = 0)
-                if (now.getSeconds() === 0 && now.getMinutes() % appState.tickerInterval === 0) {
-                    const effectClass = `effect-${appState.tickerEffect}`;
-                    
-                    if (!clockEl.classList.contains(effectClass)) {
-                        clockEl.classList.add(effectClass);
-                        setTimeout(() => clockEl.classList.remove(effectClass), 1000);
-                    }
-                }
+                if (appState.tickerInterval > 0 && now.getSeconds() === 0 && now.getMinutes() % appState.tickerInterval === 0) {
+                clockEl.classList.add(`effect-${appState.tickerEffect}`);
+                setTimeout(() => clockEl.classList.remove(`effect-${appState.tickerEffect}`), 1000);
             }
         }
+    }
 
-        // --- Event Listener ---
-        settingsBtn.addEventListener('click', () => settingsModal.style.display = 'flex');
-        closeSettingsBtn.addEventListener('click', () => settingsModal.style.display = 'none');
+        document.getElementById('settings-btn').addEventListener('click', () => document.getElementById('settings-modal').style.display = 'flex');
+        document.getElementById('close-settings').addEventListener('click', () => document.getElementById('settings-modal').style.display = 'none');
 
-        colorPicker.addEventListener('input', (e) => {
-            appState.color = e.target.value;
-            saveState();
-            updateClock();
-        });
+        colorPicker.addEventListener('input', (e) => { appState.color = e.target.value; saveState(); applyStyles(); });
+        fontPicker.addEventListener('change', (e) => { appState.font = e.target.value; saveState(); applyStyles(); });
+        positionPicker.addEventListener('change', (e) => { appState.position = e.target.value; saveState(); applyStyles(); });
+        formatPicker.addEventListener('change', (e) => { appState.format = e.target.value; saveState(); updateClock(); });
+        tickerIntervalInput.addEventListener('input', (e) => { appState.tickerInterval = parseInt(e.target.value, 10) || 0; saveState(); });
 
-        fontPicker.addEventListener('change', (e) => {
-            appState.font = e.target.value;
-            saveState();
-            updateClock();
-        });
-
-        formatPicker.addEventListener('change', (e) => {
-            appState.format = e.target.value;
-            if(appState.format.includes('YYYY')) {
-                clockEl.style.fontSize = '10vw';
-            } else {
-                clockEl.style.fontSize = '15vw';
-            }
-            saveState();
-            updateClock();
-        });
-
-        tickerIntervalInput.addEventListener('input', (e) => {
-            appState.tickerInterval = parseInt(e.target.value, 10) || 0;
-            saveState();
-        });
-
-        tickerEffectInput.addEventListener('change', (e) => {
-            appState.tickerEffect = e.target.value;
-            saveState();
-        });
-
-        // Init
+        applyStyles();
         updateClock();
         setInterval(updateClock, 1000);
 
-        // --- 2. PWA LOGIK ---
         const iconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192"><circle cx="96" cy="96" r="80" fill="#050505" stroke="#ffffff" stroke-width="8"/><path d="M96 35 V96 L140 140" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/></svg>';
-        const iconBase64 = 'data:image/svg+xml;base64,' + btoa(iconSvg);
-
-        const manifest = {
-            name: "SimpleClock",
-            short_name: "Clock",
-            description: "A Clock",
-            start_url: "./index.html",
-            display: "standalone",
-            display_override: ["window-controls-overlay"],
-            background_color: "#050505",
-            theme_color: "#050505",
-            start_url: location.href,
-            icons: [{ src: iconBase64, sizes: "192x192", type: "image/svg+xml", purpose: "any maskable" }]
-        };
-
-        const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
-        document.getElementById('manifest-link').href = URL.createObjectURL(manifestBlob);
-
-        if ('serviceWorker' in navigator) {
-            const swCode = `
-                self.addEventListener('install', (e) => self.skipWaiting());
-                self.addEventListener('activate', (e) => self.clients.claim());
-                self.addEventListener('fetch', (e) => {
-                    e.respondWith(fetch(e.request).catch(() => new Response("Uhr Offline")));
-                });
-            `;
-            const swBlob = new Blob([swCode], {type: 'application/javascript'});
-            navigator.serviceWorker.register(URL.createObjectURL(swBlob))
-                .catch(err => console.warn('Service Worker Registrierung fehlgeschlagen:', err));
-        }
+        const manifest = { name: "SimpleClock", short_name: "Clock", start_url: location.href, display: "standalone", icons: [{ src: 'data:image/svg+xml;base64,' + btoa(iconSvg), sizes: "192x192", type: "image/svg+xml" }] };
+        document.getElementById('manifest-link').href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type: 'application/json'}));
     </script>
 </body>
 </html>
