@@ -200,6 +200,15 @@
             </div>
 
             <div class="setting-group">
+                <label for="horizontal-position-picker">Horizontale Position</label>
+                <select id="horizontal-position-picker">
+                    <option value="center">Mittig</option>
+                    <option value="flex-start">Links</option>
+                    <option value="flex-end">Rechts</option>
+                </select>
+            </div>
+
+            <div class="setting-group">
                 <label for="format-picker">Zeitformat</label>
                 <select id="format-picker">
                     <option value="HH:MM:SS">HH:MM:SS (24h)</option>
@@ -256,7 +265,8 @@ self.addEventListener('fetch', (e) => {
             format: 'HH:MM:SS',
             tickerInterval: 0,        
             tickerEffect: 'pulse',
-            position: 'center'
+            position: 'center',
+            horizontalPosition: 'center'
         };
 
         // Lade Einstellungen aus LocalStorage, falls vorhanden
@@ -279,18 +289,26 @@ self.addEventListener('fetch', (e) => {
         const fontPicker = document.getElementById('font-picker');
         const formatPicker = document.getElementById('format-picker');
         const positionPicker = document.getElementById('position-picker');
+        const horizontalPositionPicker = document.getElementById('horizontal-position-picker');
         const tickerIntervalInput = document.getElementById('ticker-interval');
 
         colorPicker.value = appState.color;
         fontPicker.value = appState.font;
         formatPicker.value = appState.format;
         positionPicker.value = appState.position;
+        horizontalPositionPicker.value = appState.horizontalPosition || defaultState.horizontalPosition;
         tickerIntervalInput.value = appState.tickerInterval;
 
         function applyStyles() {
             clockEl.style.color = appState.color;
             document.body.style.fontFamily = appState.font;
             document.body.style.justifyContent = appState.position;
+            document.body.style.alignItems = appState.horizontalPosition;
+            clockEl.style.textAlign = appState.horizontalPosition === 'flex-start'
+                ? 'left'
+                : appState.horizontalPosition === 'flex-end'
+                    ? 'right'
+                    : 'center';
         }
 
         function formatTime(date, format) {
@@ -334,6 +352,7 @@ self.addEventListener('fetch', (e) => {
         colorPicker.addEventListener('input', (e) => { appState.color = e.target.value; saveState(); applyStyles(); });
         fontPicker.addEventListener('change', (e) => { appState.font = e.target.value; saveState(); applyStyles(); });
         positionPicker.addEventListener('change', (e) => { appState.position = e.target.value; saveState(); applyStyles(); });
+        horizontalPositionPicker.addEventListener('change', (e) => { appState.horizontalPosition = e.target.value; saveState(); applyStyles(); });
         formatPicker.addEventListener('change', (e) => { appState.format = e.target.value; saveState(); updateClock(); });
         tickerIntervalInput.addEventListener('input', (e) => { appState.tickerInterval = parseInt(e.target.value, 10) || 0; saveState(); });
 
@@ -366,4 +385,7 @@ v1.3.0 (Storage & Relative Ticker Update)
 v1.3.1 (Absolute Ticker Fix)
 - GEÄNDERT: Logik des Timers wieder auf absolute Intervalle zur vollen Stunde umgestellt (z. B. 15:00, 15:05, 15:10), wie vom Nutzer explizit gewünscht.
 - ENTFERNT: `nextTickTime` Hilfsvariable wurde restlos aus State und Speicher entfernt.
+
+v1.3.2 (Horizontal Position Setting)
+- HINZUGEFÜGT: Neue Einstellung fuer die horizontale Position mit Links, Mittig und Rechts.
 -->
